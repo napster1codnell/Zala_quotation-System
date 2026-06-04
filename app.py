@@ -13,6 +13,7 @@ from datetime import datetime, timedelta
 from xhtml2pdf import pisa
 
 import os
+import json
 
 app = Flask(__name__)
 
@@ -154,13 +155,30 @@ def create_quote():
             "material"
         ]
 
-        size = request.form[
-            "size"
-        ]
+        # sizes: optional JSON array submitted from the form builder
+        sizes_json = request.form.get("sizes")
+        if sizes_json:
+            try:
+                parsed_sizes = json.loads(sizes_json)
+            except Exception:
+                parsed_sizes = None
+        else:
+            parsed_sizes = None
 
-        quantity = int(
-            request.form["quantity"]
-        )
+        if parsed_sizes:
+            # compute total quantity from sizes entries
+            total_quantity = sum(int(item.get('qty', 1)) for item in parsed_sizes)
+            # store the sizes JSON in the size field for later rendering
+            size = sizes_json
+            quantity = total_quantity
+        else:
+            size = request.form[
+                "size"
+            ]
+
+            quantity = int(
+                request.form["quantity"]
+            )
 
         unit_price = float(
             request.form["unit_price"]
@@ -225,6 +243,18 @@ def create_quote():
 # PDF GENERATOR
 # ==================================================
 
+def link_callback(uri, rel):
+    if uri.startswith("/"):
+        path = os.path.join(app.root_path, uri.lstrip("/"))
+    else:
+        path = os.path.join(app.root_path, uri)
+
+    if os.path.isfile(path):
+        return path
+
+    return uri
+
+
 def convert_html_to_pdf(
     source_html,
     output_filename
@@ -237,7 +267,8 @@ def convert_html_to_pdf(
 
         pisa_status = pisa.CreatePDF(
             source_html,
-            dest=result_file
+            dest=result_file,
+            link_callback=link_callback
         )
 
     return pisa_status.err
@@ -255,7 +286,25 @@ def generate_pdf(quote_id):
         quote.valid_until = (quote.created_at + timedelta(days=14)).strftime('%d/%m/%Y')
     else:
         quote.valid_until = '14 days from issue'
-    
+    # If sizes were stored as JSON in quote.size, prepare a human-readable display
+    try:
+        parsed = json.loads(quote.size)
+        if isinstance(parsed, list):
+            # create readable display like: "900 x 600 (1), 1630 x 600 (2)"
+            parts = []
+            for item in parsed:
+                s = item.get('size') if isinstance(item, dict) else str(item)
+                q = int(item.get('qty', 1)) if isinstance(item, dict) else 1
+                parts.append(f"{s} ({q})")
+            quote.size_display = ', '.join(parts)
+            quote.sizes_list = parsed
+        else:
+            quote.size_display = None
+            quote.sizes_list = None
+    except Exception:
+        quote.size_display = None
+        quote.sizes_list = None
+
     html = render_template("quotation_template.html", quote=quote)
     
     pdf_path = os.path.join("generated_quotes", f"{quote.quote_number}.pdf")
@@ -274,6 +323,24 @@ def preview_quote(quote_id):
     quote = Quote.query.get_or_404(
         quote_id
     )
+
+    # prepare sizes display for preview if needed
+    try:
+        parsed = json.loads(quote.size)
+        if isinstance(parsed, list):
+            parts = []
+            for item in parsed:
+                s = item.get('size') if isinstance(item, dict) else str(item)
+                q = int(item.get('qty', 1)) if isinstance(item, dict) else 1
+                parts.append(f"{s} ({q})")
+            quote.size_display = ', '.join(parts)
+            quote.sizes_list = parsed
+        else:
+            quote.size_display = None
+            quote.sizes_list = None
+    except Exception:
+        quote.size_display = None
+        quote.sizes_list = None
 
     return render_template(
         "quotation_template.html",
