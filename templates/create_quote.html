@@ -189,12 +189,48 @@ textarea.form-control:focus {
     font-size: 12px;
     color: #d1d5db;
 }
+    #sizesBuilder .d-flex {
+        flex-wrap: wrap;
+    }
+    #sizesBuilder .d-flex > * {
+        min-width: 0;
+        flex: 1 1 100%;
+    }
+    #sizesBuilder .d-flex .form-control {
+        width: 100%;
+    }
+    #sizesBuilder .d-flex .btn {
+        width: 100%;
+    }
 @media (max-width: 1200px) {
     .top-panel { flex-direction: column; align-items: stretch; }
     .hero-card { max-width: 100%; }
 }
 @media (max-width: 992px) {
     .page-shell { padding: 18px; }
+    .preview-panel { min-height: auto; }
+    .section-title { font-size: 14px; }
+    .card-header-custom { font-size: 18px; padding: 20px 24px; }
+}
+@media (max-width: 768px) {
+    .page-shell { padding: 14px; }
+    .top-panel { gap: 16px; }
+    .brand-box { width: 60px; height: 60px; }
+    .brand-text .title { font-size: 22px; }
+    .hero-card { padding: 18px; }
+    .form-section { padding: 20px; }
+    .preview-panel { padding: 20px; }
+    .btn-gold { width: 100%; }
+    .summary-item { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .quote-total { font-size: 32px; }
+}
+@media (max-width: 576px) {
+    .page-shell { padding: 12px; }
+    .hero-card .headline { font-size: 20px; }
+    .brand-text .subtitle,
+    .brand-text .tagline { font-size: 11px; }
+    .form-section { padding: 18px; }
+    .preview-panel { padding: 18px; }
 }
 </style>
 </head>
