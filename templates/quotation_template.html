@@ -426,7 +426,6 @@
     </tr>
 </table>
 
-<div class="section-header">Project / Description</div>
 <div class="section-header">Project Description</div>
 <div class="desc-box">
     {{ quote.description if quote.description else 'Supply, fabrication and installation of premium granite / marble worktops as per client specifications.' }}
@@ -448,17 +447,33 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr>
-                        <td>
-                            <div class="item-heading">{{ quote.description | default('Kitchen Tops', true) }}</div>
-                            <div class="item-subtext">{{ quote.size_display if quote.size_display else (quote.size | default('As per listed sizes', true)) }}</div>
-                        </td>
-                        <td>{{ quote.material | default('Granite', true) }}</td>
-                        <td>{{ quote.size_display if quote.size_display else (quote.size | default('Standard 30mm edge profile', true)) }}</td>
-                        <td class="text-center">{{ quote.quantity | default(1, true) }}</td>
-                        <td class="text-right">R {{ "{:,.2f}".format(quote.unit_price) if quote.unit_price else '0.00' }}</td>
-                        <td class="text-right" style="font-weight:700;">R {{ "{:,.2f}".format(quote.subtotal) }}</td>
-                    </tr>
+                    {% if quote.sizes_list %}
+                        {% for item in quote.sizes_list %}
+                            <tr>
+                                <td>
+                                    <div class="item-heading">{{ quote.description | default('Kitchen Tops', true) }}</div>
+                                    <div class="item-subtext">{{ item.material if item.material else quote.material | default('Granite', true) }} · {{ item.size }}</div>
+                                </td>
+                                <td>{{ item.material if item.material else quote.material | default('Granite', true) }}</td>
+                                <td>{{ item.size }}</td>
+                                <td style="text-align:center;">{{ item.qty }}</td>
+                                <td style="text-align:right;">R {{ "{:,.2f}".format(item.price) }}</td>
+                                <td style="text-align:right;font-weight:700;">R {{ "{:,.2f}".format(item.qty * item.price) }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td>
+                                <div class="item-heading">{{ quote.description | default('Kitchen Tops', true) }}</div>
+                                <div class="item-subtext">{{ quote.size_display if quote.size_display else (quote.size | default('Standard 30mm edge profile', true)) }}</div>
+                            </td>
+                            <td>{{ quote.material | default('Granite', true) }}</td>
+                            <td>{{ quote.size_display if quote.size_display else (quote.size | default('Standard 30mm edge profile', true)) }}</td>
+                            <td style="text-align:center;">{{ quote.quantity | default(1, true) }}</td>
+                            <td style="text-align:right;">R {{ "{:,.2f}".format(quote.unit_price) if quote.unit_price else '0.00' }}</td>
+                            <td style="text-align:right;font-weight:700;">R {{ "{:,.2f}".format(quote.subtotal) }}</td>
+                        </tr>
+                    {% endif %}
                 </tbody>
         </table>
     </div>

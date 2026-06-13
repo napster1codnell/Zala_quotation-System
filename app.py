@@ -4,18 +4,22 @@ from flask import (
     request,
     redirect,
     url_for,
-    send_file
+    send_file,
+    session,
+    flash,
 )
 
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, timedelta
-
+from functools import wraps
+from werkzeug.security import generate_password_hash, check_password_hash
 from xhtml2pdf import pisa
 
 import os
 import json
 
 app = Flask(__name__)
+app.secret_key = "your-secret-key-change-in-production"
 
 # ==================================================
 # CONFIG
@@ -63,7 +67,7 @@ class Quote(db.Model):
     )
 
     size = db.Column(
-        db.String(100)
+        db.Text
     )
 
     quantity = db.Column(
@@ -95,6 +99,14 @@ class Quote(db.Model):
         default=datetime.utcnow
     )
 
+class User(db.Model):
+
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    email = db.Column(db.String(200), unique=True, nullable=False)
+    password_hash = db.Column(db.String(200), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
 # ==================================================
 # CREATE DATABASE
 # ==================================================
@@ -111,7 +123,16 @@ os.makedirs(
 # DASHBOARD
 # ==================================================
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get("logged_in"):
+            return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated_function
+
 @app.route("/")
+@login_required
 def dashboard():
 
     quotes = Quote.query.order_by(
@@ -124,6 +145,76 @@ def dashboard():
     )
 
 # ==================================================
+# LOGIN
+# ==================================================
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+
+    if request.method == "POST":
+        email = request.form.get("email")
+        password = request.form.get("password")
+
+        user = User.query.filter_by(email=email).first()
+
+        if user and check_password_hash(user.password_hash, password):
+            session["logged_in"] = True
+            session["user_id"] = user.id
+            return redirect(url_for("dashboard"))
+        else:
+            return render_template("login.html", error="Invalid email or password")
+
+    return render_template("login.html")
+
+# ==================================================
+# LOGOUT
+# ==================================================
+
+@app.route("/logout")
+def logout():
+    session.pop("logged_in", None)
+    return redirect(url_for("login"))
+
+# ==================================================
+# REGISTER
+# ==================================================
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+
+    if request.method == "POST":
+        username = request.form.get("username")
+        email = request.form.get("email")
+        password = request.form.get("password")
+        confirm_password = request.form.get("confirm_password")
+
+        if not username or not email or not password:
+            return render_template("register.html", error="All fields are required")
+
+        if password != confirm_password:
+            return render_template("register.html", error="Passwords do not match")
+
+        existing_user = User.query.filter(
+            (User.username == username) | (User.email == email)
+        ).first()
+
+        if existing_user:
+            return render_template("register.html", error="Username or email already exists")
+
+        user = User(
+            username=username,
+            email=email,
+            password_hash=generate_password_hash(password)
+        )
+
+        db.session.add(user)
+        db.session.commit()
+
+        return render_template("register.html", success="Account created successfully! You can now login.")
+
+    return render_template("register.html")
+
+# ==================================================
 # CREATE QUOTE
 # ==================================================
 
@@ -131,6 +222,7 @@ def dashboard():
     "/create",
     methods=["GET", "POST"]
 )
+@login_required
 def create_quote():
 
     if request.method == "POST":
@@ -155,43 +247,33 @@ def create_quote():
             "material"
         ]
 
-        # sizes: optional JSON array submitted from the form builder
+# sizes: optional JSON array submitted from the form builder
         sizes_json = request.form.get("sizes")
+        parsed_sizes = None
         if sizes_json:
             try:
                 parsed_sizes = json.loads(sizes_json)
+                if isinstance(parsed_sizes, list) and parsed_sizes:
+                    total_quantity = sum(int(item.get('qty', 1)) for item in parsed_sizes)
+                    subtotal = sum((int(item.get('qty', 1)) * float(item.get('price', 0))) for item in parsed_sizes)
+                    unit_price = float(parsed_sizes[0].get('price', 0)) if parsed_sizes else 0.0
+                    size = sizes_json
+                    quantity = total_quantity
+                else:
+                    parsed_sizes = None
             except Exception:
                 parsed_sizes = None
-        else:
-            parsed_sizes = None
 
-        if parsed_sizes:
-            # compute total quantity from sizes entries
-            total_quantity = sum(int(item.get('qty', 1)) for item in parsed_sizes)
-            # store the sizes JSON in the size field for later rendering
-            size = sizes_json
-            quantity = total_quantity
-        else:
-            size = request.form[
-                "size"
-            ]
-
-            quantity = int(
-                request.form["quantity"]
-            )
-
-        unit_price = float(
-            request.form["unit_price"]
-        )
+        if not parsed_sizes:
+            size = request.form.get("size", "Standard")
+            quantity = int(request.form.get("quantity", 1))
+            unit_price = float(request.form.get("unit_price", 0))
+            subtotal = quantity * unit_price
 
         labour_percentage = float(
             request.form[
                 "labour_percentage"
             ]
-        )
-
-        subtotal = (
-            quantity * unit_price
         )
 
         labour_amount = (
@@ -278,6 +360,7 @@ def convert_html_to_pdf(
 # ==================================================
 
 @app.route("/pdf/<int:quote_id>")
+@login_required
 def generate_pdf(quote_id):
     quote = Quote.query.get_or_404(quote_id)
     
@@ -318,6 +401,7 @@ def generate_pdf(quote_id):
 @app.route(
     "/quote/<int:quote_id>"
 )
+@login_required
 def preview_quote(quote_id):
 
     quote = Quote.query.get_or_404(
@@ -354,6 +438,7 @@ def preview_quote(quote_id):
 @app.route(
     "/delete/<int:quote_id>"
 )
+@login_required
 def delete_quote(quote_id):
 
     quote = Quote.query.get_or_404(

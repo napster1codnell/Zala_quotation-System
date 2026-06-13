@@ -189,6 +189,9 @@ textarea.form-control:focus {
     font-size: 12px;
     color: #d1d5db;
 }
+.text-gold {
+    color: var(--gold);
+}
     #sizesBuilder .d-flex {
         flex-wrap: wrap;
     }
@@ -235,6 +238,29 @@ textarea.form-control:focus {
 </style>
 </head>
 <body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand fw-bold text-gold" href="/">UNCLE ZALA</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav me-auto">
+        <li class="nav-item">
+          <a class="nav-link" href="/">Dashboard</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active" href="/create">Create Quote</a>
+        </li>
+      </ul>
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link text-danger" href="/logout">Logout</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
 <div class="page-shell container-fluid">
     <div class="top-panel">
         <div class="brand-badge">
@@ -282,7 +308,7 @@ textarea.form-control:focus {
                         </div>
                         <div class="row g-3 mb-3">
                             <div class="col-md-6">
-                                    <label class="form-label">Material</label>
+                                <label class="form-label">Material</label>
                                     <div class="input-group">
                                         <select name="material" id="materialSelect" class="form-control" required>
                                             <option value="Granite">Granite</option>
@@ -295,18 +321,24 @@ textarea.form-control:focus {
                                     </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label">Sizes (mm)</label>
+                                <label class="form-label">Sizes (mm) & Price</label>
+                                <div class="mb-2">
+                                    <select id="sizePreset" class="form-control">
+                                        <option value="">Choose a preset size</option>
+                                    </select>
+                                </div>
                                 <div id="sizesBuilder">
                                     <div class="d-flex gap-2 mb-2">
                                         <input type="text" id="sizeWidth" class="form-control" placeholder="Width (e.g. 900)">
                                         <input type="text" id="sizeHeight" class="form-control" placeholder="Height (e.g. 600)">
-                                        <input type="number" id="sizeQty" class="form-control" placeholder="Qty" value="1" min="1" style="width:90px;">
+                                        <input type="number" id="sizeQty" class="form-control" placeholder="Qty" value="1" min="1" style="width:70px;">
+                                        <input type="number" step="0.01" id="sizePrice" class="form-control" placeholder="Price" min="0" style="width:90px;">
                                         <button type="button" id="addSizeBtn" class="btn btn-gold">Add Size</button>
                                     </div>
                                     <div id="sizesList" style="max-height:180px; overflow:auto; margin-top:6px;"></div>
                                     <input type="hidden" name="sizes" id="sizesInput">
                                 </div>
-                                <small class="text-muted">Add multiple size rows as shown in the sample PDF.</small>
+                                <small class="text-muted">Add multiple size rows - each can have its own price.</small>
                             </div>
                         </div>
                         <div class="section-title">Pricing Details</div>
@@ -358,89 +390,148 @@ textarea.form-control:focus {
     </div>
 </div>
 <script>
-const qty = document.getElementById('qty');
-const price = document.getElementById('price');
-const labour = document.getElementById('labour');
+document.addEventListener('DOMContentLoaded', function () {
+    const qty = document.getElementById('qty');
+    const price = document.getElementById('price');
+    const labour = document.getElementById('labour');
+    const materialSelect = document.getElementById('materialSelect');
+    const sizePreset = document.getElementById('sizePreset');
+    const addSizeBtn = document.getElementById('addSizeBtn');
+    const sizeWidth = document.getElementById('sizeWidth');
+    const sizeHeight = document.getElementById('sizeHeight');
+    const sizeQty = document.getElementById('sizeQty');
+    const sizePrice = document.getElementById('sizePrice');
+    const sizesList = document.getElementById('sizesList');
+    const sizesInput = document.getElementById('sizesInput');
+    const quoteForm = document.querySelector('form');
 
-function calculate() {
-    const q = parseFloat(qty.value) || 0;
-    const p = parseFloat(price.value) || 0;
-    const l = parseFloat(labour.value) || 0;
-    const subtotal = q * p;
-    const labourAmount = subtotal * (l / 100);
-    const total = subtotal + labourAmount;
-
-    document.getElementById('subtotal').innerText = 'R ' + subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    document.getElementById('labourCost').innerText = 'R ' + labourAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    document.getElementById('total').innerText = 'R ' + total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-    document.getElementById('quoteTotal').innerText = 'R ' + total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-qty.addEventListener('input', calculate);
-price.addEventListener('input', calculate);
-labour.addEventListener('input', calculate);
-calculate();
-
-// materials selection handled by static select
-
-// Sizes builder
-const addSizeBtn = document.getElementById('addSizeBtn');
-const sizeWidth = document.getElementById('sizeWidth');
-const sizeHeight = document.getElementById('sizeHeight');
-const sizeQty = document.getElementById('sizeQty');
-const sizesList = document.getElementById('sizesList');
-const sizesInput = document.getElementById('sizesInput');
-
-let sizes = [];
-
-function renderSizes() {
-    sizesList.innerHTML = '';
-    sizes.forEach((s, idx) => {
-        const row = document.createElement('div');
-        row.className = 'd-flex align-items-center justify-content-between p-2 border rounded mb-2';
-        row.innerHTML = `<div>${s.size} <small class="text-muted">× ${s.qty}</small></div><div><button data-idx="${idx}" class="btn btn-sm btn-outline-secondary remove-size">Remove</button></div>`;
-        sizesList.appendChild(row);
-    });
-    sizesInput.value = JSON.stringify(sizes);
-    // update quantity used in calculation
-    updateQuantityFromSizes();
-}
-
-function updateQuantityFromSizes() {
-    const totalQty = sizes.reduce((acc, s) => acc + (parseInt(s.qty) || 0), 0);
-    // if sizes exist, use totalQty in subtotal calc
-    window._sizesTotalQty = totalQty;
-    calculate();
-}
-
-addSizeBtn.addEventListener('click', () => {
-    const w = sizeWidth.value.trim();
-    const h = sizeHeight.value.trim();
-    const q = parseInt(sizeQty.value) || 1;
-    if (!w || !h) return;
-    const sizeText = `${w} x ${h}`;
-    sizes.push({ size: sizeText, qty: q });
-    sizeWidth.value = '';
-    sizeHeight.value = '';
-    sizeQty.value = 1;
-    renderSizes();
-});
-
-sizesList.addEventListener('click', (e) => {
-    if (e.target.classList.contains('remove-size')) {
-        const idx = parseInt(e.target.getAttribute('data-idx'));
-        sizes.splice(idx, 1);
-        renderSizes();
+    if (!qty || !price || !labour || !materialSelect || !sizePreset || !addSizeBtn || !sizeWidth || !sizeHeight || !sizeQty || !sizePrice || !sizesList || !sizesInput || !quoteForm) {
+        return;
     }
-});
 
-// Set initial sizesTotalQty to null so calculate falls back to single qty
-window._sizesTotalQty = null;
+    const standardModeNote = document.createElement('small');
+    standardModeNote.className = 'text-muted';
+    standardModeNote.id = 'standardModeNote';
+    price.insertAdjacentElement('afterend', standardModeNote);
 
-// ensure sizes are serialized before submit
-const quoteForm = document.querySelector('form');
-quoteForm.addEventListener('submit', () => {
-    sizesInput.value = JSON.stringify(sizes);
+    let sizes = [];
+
+    const materialSizes = {
+        Granite: ['900 x 600', '1200 x 600', '1800 x 900'],
+        Marble: ['1000 x 600', '1500 x 750', '2000 x 900'],
+        Quartz: ['900 x 500', '1200 x 700', '2400 x 1200'],
+        Shimmer: ['1000 x 500', '1200 x 600', '1600 x 800'],
+        Dekton: ['1100 x 650', '1500 x 900', '3000 x 1400'],
+        Other: ['900 x 600', '1200 x 600', '1800 x 900']
+    };
+
+    function populateSizePresets() {
+        sizePreset.innerHTML = '<option value="">Choose a preset size</option>';
+        const sizes = materialSizes[materialSelect.value] || materialSizes.Other;
+        sizes.forEach((preset) => {
+            const option = document.createElement('option');
+            option.value = preset;
+            option.textContent = preset;
+            sizePreset.appendChild(option);
+        });
+    }
+
+    function applySizePreset() {
+        const value = sizePreset.value;
+        if (!value) {
+            return;
+        }
+        const [width, height] = value.split(' x ').map((v) => v.trim());
+        sizeWidth.value = width;
+        sizeHeight.value = height;
+    }
+
+    function calculate() {
+        const l = parseFloat(labour.value) || 0;
+        const q = sizes.length > 0 ? sizes.reduce((acc, s) => acc + (parseInt(s.qty) || 0), 0) : (parseFloat(qty.value) || 0);
+        const subtotal = sizes.length > 0 ? sizes.reduce((acc, s) => acc + (parseInt(s.qty) || 0) * (parseFloat(s.price) || 0), 0) : (q * (parseFloat(price.value) || 0));
+        const labourAmount = subtotal * (l / 100);
+        const total = subtotal + labourAmount;
+
+        document.getElementById('subtotal').innerText = 'R ' + subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('labourCost').innerText = 'R ' + labourAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('total').innerText = 'R ' + total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        document.getElementById('quoteTotal').innerText = 'R ' + total.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    function updateFormState() {
+        const usingSizes = sizes.length > 0;
+        qty.disabled = usingSizes;
+        price.disabled = usingSizes;
+        qty.required = !usingSizes;
+        price.required = !usingSizes;
+        standardModeNote.innerText = usingSizes ? 'Custom sizes active. Standard quantity and unit price are ignored.' : 'Use quantity + unit price when not adding custom sizes.';
+    }
+
+    function renderSizes() {
+        sizesList.innerHTML = '';
+        sizes.forEach((s, idx) => {
+            const row = document.createElement('div');
+            row.className = 'd-flex align-items-center justify-content-between p-2 border rounded mb-2 flex-wrap';
+            row.innerHTML = `<div><strong>${s.size}</strong> <small class="text-muted">× ${s.qty}</small> <span class="badge bg-secondary ms-2">${s.material}</span> <small class="text-gold ms-2">R ${parseFloat(s.price || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</small></div><div><button type="button" data-idx="${idx}" class="btn btn-sm btn-outline-secondary remove-size">Remove</button></div>`;
+            sizesList.appendChild(row);
+        });
+        sizesInput.value = JSON.stringify(sizes);
+        updateFormState();
+        calculate();
+    }
+
+    addSizeBtn.addEventListener('click', () => {
+        const w = sizeWidth.value.trim();
+        const h = sizeHeight.value.trim();
+        const q = parseInt(sizeQty.value) || 1;
+        const p = parseFloat(sizePrice.value) || 0;
+
+        if (!w || !h) {
+            alert('Please enter both width and height for the size.');
+            return;
+        }
+        if (p <= 0) {
+            alert('Please enter a valid price for this size.');
+            return;
+        }
+
+        const sizeText = `${w} x ${h}`;
+        sizes.push({ material: materialSelect.value, size: sizeText, qty: q, price: p });
+        sizeWidth.value = '';
+        sizeHeight.value = '';
+        sizeQty.value = 1;
+        sizePrice.value = '';
+        sizePreset.value = '';
+        renderSizes();
+    });
+
+    sizePreset.addEventListener('change', applySizePreset);
+
+    sizesList.addEventListener('click', (e) => {
+        if (e.target.classList.contains('remove-size')) {
+            const idx = parseInt(e.target.getAttribute('data-idx'));
+            sizes.splice(idx, 1);
+            renderSizes();
+        }
+    });
+
+    quoteForm.addEventListener('submit', () => {
+        sizesInput.value = JSON.stringify(sizes);
+        updateFormState();
+    });
+
+    materialSelect.addEventListener('change', () => {
+        populateSizePresets();
+        sizePreset.value = '';
+    });
+    sizePreset.addEventListener('change', applySizePreset);
+    qty.addEventListener('input', calculate);
+    price.addEventListener('input', calculate);
+    labour.addEventListener('input', calculate);
+
+    populateSizePresets();
+    calculate();
 });
 </script>
 </body>
