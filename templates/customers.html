@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Customers - Uncle Zala</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <style>
+        :root{
+            --gold:#c9a227;
+            --dark:#111111;
+            --light:#f5f5f5;
+        }
+
+        body{
+            background:#f3f4f6;
+            font-family:Arial, Helvetica, sans-serif;
+        }
+
+        /* Sidebar */
+        .sidebar{
+            position:fixed;
+            left:0;
+            top:0;
+            width:260px;
+            height:100vh;
+            background:var(--dark);
+            color:white;
+        }
+
+        .logo-section{
+            text-align:center;
+            padding:30px 20px;
+            border-bottom:1px solid rgba(255,255,255,.1);
+        }
+
+        .logo-circle{
+            width:80px;
+            height:80px;
+            border-radius:50%;
+            margin:auto;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            overflow: hidden;
+            border: 3px solid var(--gold);
+        }
+
+        .company{
+            margin-top:15px;
+            font-size:22px;
+            font-weight:bold;
+        }
+
+        .subtitle{
+            color:#bbb;
+            font-size:13px;
+        }
+
+        .sidebar-menu{
+            padding:20px;
+        }
+
+        .sidebar-menu a{
+            display:block;
+            color:white;
+            text-decoration:none;
+            padding:14px;
+            border-radius:8px;
+            margin-bottom:10px;
+            transition:.3s;
+        }
+
+        .sidebar-menu a:hover{
+            background:var(--gold);
+        }
+
+        .sidebar-menu i{
+            width:25px;
+        }
+
+        /* Main */
+        .main{
+            margin-left:260px;
+            padding:30px;
+        }
+
+        .page-title{
+            font-size:32px;
+            font-weight:bold;
+        }
+
+        .page-subtitle{
+            color:#666;
+        }
+
+        .customer-card{
+            background:white;
+            border-radius:15px;
+            padding:25px;
+            box-shadow:0 3px 10px rgba(0,0,0,.05);
+            margin-bottom:20px;
+            border-left:5px solid var(--gold);
+            transition:.3s;
+        }
+
+        .customer-card:hover{
+            box-shadow:0 5px 20px rgba(0,0,0,.1);
+        }
+
+        .customer-name{
+            font-size:20px;
+            font-weight:bold;
+            color:var(--dark);
+        }
+
+        .customer-info{
+            color:#666;
+            font-size:14px;
+            margin-top:10px;
+        }
+
+        .customer-stats{
+            display:flex;
+            gap:30px;
+            margin-top:15px;
+        }
+
+        .stat-item{
+            display:flex;
+            flex-direction:column;
+        }
+
+        .stat-label{
+            font-size:12px;
+            color:#999;
+            text-transform:uppercase;
+            font-weight:bold;
+        }
+
+        .stat-value{
+            font-size:18px;
+            font-weight:bold;
+            color:var(--gold);
+        }
+
+        .top-actions{
+            display:flex;
+            justify-content:space-between;
+            align-items:center;
+            margin-bottom:30px;
+        }
+
+        .btn-gold{
+            background:var(--gold);
+            color:white;
+            border:none;
+        }
+
+        .btn-gold:hover{
+            background:#b48f1e;
+            color:white;
+        }
+
+        .search-box{
+            width:300px;
+            padding:12px 15px;
+            border:1px solid #ddd;
+            border-radius:8px;
+        }
+
+        .empty-state{
+            text-align:center;
+            padding:60px 20px;
+        }
+
+        .empty-state i{
+            font-size:60px;
+            color:#ddd;
+            margin-bottom:20px;
+        }
+
+        .empty-state h3{
+            color:#666;
+            font-weight:bold;
+        }
+
+        @media (max-width: 992px) {
+            .sidebar{
+                position:relative;
+                width:100%;
+                height:auto;
+            }
+            .sidebar-menu{
+                display:flex;
+                flex-wrap:wrap;
+                gap: 10px;
+                justify-content:center;
+            }
+            .sidebar-menu a{
+                flex:1 1 calc(50% - 10px);
+                text-align:center;
+                margin-bottom:0;
+                padding:12px 10px;
+            }
+            .main{
+                margin-left:0;
+                padding:20px 16px 30px;
+            }
+            .top-actions{
+                flex-direction:column;
+                align-items:stretch;
+                gap:14px;
+            }
+            .search-box{
+                width:100%;
+            }
+            .page-title{ font-size:28px; }
+        }
+
+        @media (max-width: 576px) {
+            .sidebar-menu a{
+                flex:1 1 100%;
+            }
+            .page-title{ font-size:24px; }
+            .customer-card{ padding:20px; }
+            .customer-stats{
+                gap:20px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- SIDEBAR -->
+    <div class="sidebar">
+        <div class="logo-section">
+            <div class="logo-circle">
+                <img src="/static/logo.jpg" alt="Company Logo" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+            </div>
+            <div class="company">UNCLE ZALA</div>
+            <div class="subtitle">Granite & Marble</div>
+        </div>
+
+        <div class="sidebar-menu">
+            <a href="/"><i class="fa fa-home"></i> Dashboard</a>
+            <a href="/create"><i class="fa fa-file"></i> New Quotation</a>
+            <a href="/customers"><i class="fa fa-users"></i> Customers</a>
+            <a href="/settings"><i class="fa fa-gear"></i> Settings</a>
+            <a href="/logout"><i class="fa fa-sign-out-alt"></i> Logout</a>
+        </div>
+    </div>
+
+    <!-- MAIN -->
+    <div class="main">
+        <div class="top-actions">
+            <div>
+                <div class="page-title">Customers</div>
+                <div class="page-subtitle">Manage and view all customers</div>
+            </div>
+        </div>
+
+        {% if customers|length > 0 %}
+            <div class="row">
+                <div class="col-md-12">
+                    {% for customer in customers %}
+                        <div class="customer-card">
+                            <div class="customer-name">
+                                <i class="fa fa-user-circle" style="color:var(--gold); margin-right:10px;"></i>
+                                {{ customer.name }}
+                            </div>
+
+                            <div class="customer-info">
+                                {% if customer.phone %}
+                                    <div><i class="fa fa-phone" style="color:var(--gold);"></i> {{ customer.phone }}</div>
+                                {% endif %}
+                                {% if customer.address %}
+                                    <div><i class="fa fa-map-marker" style="color:var(--gold);"></i> {{ customer.address }}</div>
+                                {% endif %}
+                            </div>
+
+                            <div class="customer-stats">
+                                <div class="stat-item">
+                                    <span class="stat-label">Total Quotes</span>
+                                    <span class="stat-value">{{ customer.quote_count }}</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Total Value</span>
+                                    <span class="stat-value">R{{ "%.2f"|format(customer.total_value) }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% else %}
+            <div class="empty-state">
+                <i class="fa fa-users"></i>
+                <h3>No customers yet</h3>
+                <p>Create your first quotation to add a customer</p>
+                <a href="/create" class="btn btn-gold btn-lg" style="margin-top:20px;">
+                    <i class="fa fa-plus"></i> Create Quotation
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

@@ -454,6 +454,90 @@ def delete_quote(quote_id):
     )
 
 # ==================================================
+# CUSTOMERS
+# ==================================================
+
+@app.route("/customers")
+@login_required
+def customers():
+    # Get unique customers from all quotes
+    quotes = Quote.query.all()
+    
+    # Create a dictionary of unique customers
+    customers_dict = {}
+    for quote in quotes:
+        if quote.customer_name not in customers_dict:
+            customers_dict[quote.customer_name] = {
+                'name': quote.customer_name,
+                'phone': quote.customer_phone,
+                'address': quote.customer_address,
+                'quote_count': 0,
+                'total_value': 0
+            }
+        customers_dict[quote.customer_name]['quote_count'] += 1
+        customers_dict[quote.customer_name]['total_value'] += quote.total
+    
+    customers_list = list(customers_dict.values())
+    
+    return render_template(
+        "customers.html",
+        customers=customers_list
+    )
+
+# ==================================================
+# SETTINGS
+# ==================================================
+
+@app.route("/settings", methods=["GET", "POST"])
+@login_required
+def settings():
+    user_id = session.get("user_id")
+    user = User.query.get(user_id)
+    
+    if request.method == "POST":
+        action = request.form.get("action")
+        
+        if action == "update_profile":
+            username = request.form.get("username")
+            email = request.form.get("email")
+            
+            # Check if email or username already exists (excluding current user)
+            existing_user = User.query.filter(
+                ((User.username == username) | (User.email == email)) & 
+                (User.id != user_id)
+            ).first()
+            
+            if existing_user:
+                return render_template("settings.html", user=user, error="Username or email already exists")
+            
+            user.username = username
+            user.email = email
+            db.session.commit()
+            
+            return render_template("settings.html", user=user, success="Profile updated successfully!")
+        
+        elif action == "change_password":
+            current_password = request.form.get("current_password")
+            new_password = request.form.get("new_password")
+            confirm_password = request.form.get("confirm_password")
+            
+            if not check_password_hash(user.password_hash, current_password):
+                return render_template("settings.html", user=user, error="Current password is incorrect")
+            
+            if new_password != confirm_password:
+                return render_template("settings.html", user=user, error="New passwords do not match")
+            
+            if len(new_password) < 6:
+                return render_template("settings.html", user=user, error="Password must be at least 6 characters long")
+            
+            user.password_hash = generate_password_hash(new_password)
+            db.session.commit()
+            
+            return render_template("settings.html", user=user, success="Password changed successfully!")
+    
+    return render_template("settings.html", user=user)
+
+# ==================================================
 # RUN
 # ==================================================
 
